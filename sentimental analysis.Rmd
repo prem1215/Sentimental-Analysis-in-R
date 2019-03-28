@@ -1,0 +1,83 @@
+---
+title: "sentimental analysis"
+author: "Prem Kumar Kamasani"
+date: "March 28, 2019"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+pos.words <- read.csv("positive.csv")
+neg.words <- read.csv("negative.csv")
+pos.words <- scan("positive.csv",what = 'character')
+neg.words <- scan("negative.csv",what = 'character')
+apple<-read.csv("apple1101.csv", header = TRUE, sep = ",");
+
+```
+pos.words variable has positive words. neg.words variable has negative words.
+Data of apple tweets are taken from twitter api. 
+
+Our aim is to find sentimental score as well emotion analysis on tweets of Apple.
+positive word has score of +1 and negative word has score of -1.
+Range of scores =[-5, +5]
+```{r}
+score.sentiment = function(sentences, pos.words, neg.words, .progress='.progress')
+{
+  require(plyr)
+  require(stringr)
+  scores = laply(sentences, 
+                 function(sentence, pos.words, neg.words)
+                   {
+                    sentence = gsub('[[:punct:]]', '', sentence)
+                    sentence = gsub('[[:cntrl:]]', '', sentence)
+                    sentence = gsub('\\d+', '', sentence)
+                    sentence = tolower(sentence)
+                    word.list = str_split(sentence, '\\s+')
+                    words = unlist(word.list)
+                    pos.matches = match(words, pos.words)
+                    neg.matches = match(words, neg.words)
+                    pos.matches = !is.na(pos.matches)
+                    neg.matches = !is.na(neg.matches)
+                    score=sum(pos.matches)-sum(neg.matches)
+                    return(score)
+                  },
+                 pos.words, 
+                 neg.words,
+                 .progress='.progress' )
+  scores.df = data.frame(score=scores, text=sentences)
+  return(scores.df)
+}
+
+```
+
+```{r}
+apple<-as.data.frame(apple)
+result <- score.sentiment(apple$text,pos.words,neg.words)
+summary(result$score)
+
+```
+
+```{r}
+hist(result$score,col ="red", main ="Score of tweets",ylab = " Count of tweets", xlab = "score")
+
+
+```
+From the above bar graph we can observe that neutral tweets are more.
+```{r}
+library(syuzhet)
+library(lubridate)
+library(ggplot2)
+library(scales)
+library(reshape2)
+library(dplyr)
+```
+we use these libraries to calculate the scores of emotions for Apple tweets data. 
+```{r}
+apple<-read.csv("apple1101.csv", header = TRUE, sep = ",")
+tweets<-iconv(apple$text)
+sentiments<-get_nrc_sentiment(tweets)
+barplot(colSums(sentiments), las=2, col=rainbow(10),ylab = "count", main = "Sentiments for Apple Tweets")
+
+
+```
